@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "statusMessage": "Checking if CLAUDE.md needs an update…",
+            "command": "in=$(cat); printf '%s' \"$in\" | grep -qiE 'npm (run )?test|vitest|jest|pytest|go test|pnpm test|yarn test' && printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"A test command just ran in this project. If this turn implemented a NEW feature and its tests passed, update CLAUDE.md so it stays current — document the feature plus any new commands, routes/endpoints, or architecture notes. Skip if this was only a bugfix or refactor, or if the tests failed.\"}}'; true"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,224 @@
+/* Browser-side font load (non-blocking; falls back to system fonts offline). */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --font-inter: "Inter";
+  --font-mono: "JetBrains Mono";
+}
+
+html,
+body {
+  background-color: #010102;
+  color: #f7f8f8;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-feature-settings: "cv01", "ss03";
+}
+
+/* Subtle white edge highlight on lifted panels — gives the dark surface a
+   faint "pixel rendered" feel (Linear decorative depth). */
+.edge-highlight {
+  position: relative;
+}
+.edge-highlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding-top: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0) 40%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Focus ring — 2px primary-focus outline at 50% opacity */
+.focus-ring:focus-visible {
+  outline: 2px solid rgba(94, 105, 209, 0.5);
+  outline-offset: 1px;
+}
+
+::selection {
+  background: rgba(94, 105, 209, 0.35);
+  color: #f7f8f8;
+}
+
+/* Thin dark scrollbar to match canvas */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2c31 transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a2c31;
+  border-radius: 9999px;
+  border: 3px solid #010102;
+}
+
+/* Dotted grid texture for hero/section backdrops (very subtle, no gradients) */
+.dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ----------------------------------------------------------- Motion / smooth */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Content fade-up on first paint of a page/section (Apple-like settle). */
+@keyframes enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-enter {
+  animation: enter-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Gentle lift for interactive cards/links. */
+.lift {
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+  will-change: transform;
+}
+.lift:hover {
+  transform: translateY(-3px);
+  border-color: #34373d;
+}
+
+/* ----------------------------------------------------------- Intro splash */
+
+@keyframes splash-logo {
+  0% {
+    opacity: 0;
+    transform: scale(0.82) translateY(6px);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes splash-name {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+    letter-spacing: 0.12em;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    letter-spacing: -0.02em;
+  }
+}
+@keyframes splash-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.splash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: #010102;
+  transition:
+    opacity 0.55s ease,
+    visibility 0.55s ease;
+}
+.splash-overlay.is-leaving {
+  opacity: 0;
+  visibility: hidden;
+}
+.splash-logo {
+  animation: splash-logo 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.splash-name {
+  animation: splash-name 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both;
+}
+.splash-bar {
+  width: 132px;
+  height: 2px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+.splash-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: #5e6ad2;
+  transform-origin: left center;
+  animation: splash-bar 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+}
+
+/* Phase 2 of the splash: the "Are you new to M&A?" question card. */
+@keyframes splash-ask {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.splash-ask {
+  animation: splash-ask 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Respect users who prefer no motion — skip all the choreography. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .page-enter,
+  .splash-logo,
+  .splash-name,
+  .splash-bar > span,
+  .splash-ask {
+    animation: none !important;
+  }
+  .lift {
+    transition: background-color 0.18s ease;
+  }
+  .lift:hover {
+    transform: none;
+  }
+}
