@@ -43,7 +43,7 @@ NODE_OPTIONS=--dns-result-order=ipv4first npm install
 ```
 (On Windows PowerShell: `$env:NODE_OPTIONS="--dns-result-order=ipv4first"; npm install`.) If npmjs.org keeps timing out, a registry mirror is far faster here: `npm install --registry=https://registry.npmmirror.com`.
 
-The project lives on a OneDrive path with a space and `&` in it. cmd.exe treats `&` as a command separator, which breaks `npm test` / `npm run dev` / `npm run build`. A project `.npmrc` sets `script-shell` to Git Bash so npm scripts run correctly — keep that file. Always quote paths in shell commands.
+The project lives on a OneDrive path with a space and `&` in it. cmd.exe treats `&` as a command separator, which breaks `npm test` / `npm run dev` / `npm run build`. A local `.npmrc` sets `script-shell` to Git Bash so npm scripts run correctly on this machine — keep that file locally. **It is git-ignored on purpose:** its `script-shell` points to a Windows Git Bash path (`C:\Program Files\Git\bin\bash.exe`), and committing it breaks Linux CI / Vercel builds (`npm install` → `enoent spawn …bash.exe`, exit 254). Always quote paths in shell commands.
 
 **`.next` corruption gotcha:** don't run `npm run build` while `npm run dev` is live — the dev server overwrites `.next` with dev artifacts and `npm run start` then fails with `Cannot find module './<chunk>.js'`. Stop the dev server first (`Get-NetTCPConnection -LocalPort 3000` → `Stop-Process`), `rm -rf .next`, then build. Also watch for a zombie `npm start` holding port 3000 (`EADDRINUSE`).
 

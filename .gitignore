@@ -13,3 +13,7 @@ next-env.d.ts
 /.cache
 /coverage
 *.log
+
+# Windows-only: points npm's script-shell at a local Git Bash path. Committing
+# it breaks Linux CI / Vercel builds (the Windows path doesn't exist there).
+.npmrc
