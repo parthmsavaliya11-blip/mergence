@@ -182,7 +182,14 @@ export async function getLatestMA(limit = 40): Promise<DealFacts[]> {
       // slice client-side so this works on every plan.
       const rows = await fmpGet<FmpMA[]>("mergers-acquisitions-latest", { page: 0 });
       if (!Array.isArray(rows)) return [];
-      return rows.slice(0, limit).map((r) => normalizeMA(r));
+      // Drop noisy rows: filings missing a real acquirer or target, or where the
+      // two are the same entity (the raw feed has plenty of these).
+      const clean = rows.filter((r) => {
+        const acq = (r.companyName ?? "").trim();
+        const tgt = (r.targetedCompanyName ?? "").trim();
+        return acq && tgt && acq.toLowerCase() !== tgt.toLowerCase();
+      });
+      return clean.slice(0, limit).map((r) => normalizeMA(r));
     } catch {
       return [];
     }

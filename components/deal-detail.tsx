@@ -6,6 +6,8 @@ import type { DealWithModel } from "@/lib/deals-service";
 import type { ModelAssumptions } from "@/lib/types";
 import { Badge, Button, Card, Stat } from "@/components/ui";
 import { StatusBadge, VerdictPill } from "@/components/verdict-pill";
+import { SaveDealButton } from "@/components/save-deal-button";
+import { computeDealScore, explainDeal, scoreMeta } from "@/lib/deal-insights";
 import {
   fmtCurrencyCompact,
   fmtDate,
@@ -17,7 +19,13 @@ import {
 
 type Model = NonNullable<DealWithModel["model"]>;
 
-export function DealDetail({ initial }: { initial: DealWithModel }) {
+export function DealDetail({
+  initial,
+  sensitivity = null,
+}: {
+  initial: DealWithModel;
+  sensitivity?: string | null;
+}) {
   const { facts } = initial;
   // The base case never changes — it's the model Mergence computed from the
   // disclosed deal structure + default assumptions. Financials (acquirer/target)
@@ -86,11 +94,21 @@ export function DealDetail({ initial }: { initial: DealWithModel }) {
         {facts.sector && <Badge tone="neutral">{facts.sector}</Badge>}
         {facts.region && <Badge tone="neutral">{facts.region}</Badge>}
       </div>
-      <h1 className="mt-md text-display-md text-ink">
-        {facts.acquirer}
-        <span className="text-ink-tertiary"> → </span>
-        {facts.target}
-      </h1>
+      <div className="mt-md flex flex-wrap items-start justify-between gap-md">
+        <h1 className="text-display-md text-ink">
+          {facts.acquirer}
+          <span className="text-ink-tertiary"> → </span>
+          {facts.target}
+        </h1>
+        <SaveDealButton
+          deal={{
+            id: facts.id,
+            acquirer: facts.acquirer,
+            target: facts.target,
+            status: facts.status,
+          }}
+        />
+      </div>
 
       <div className="mt-md flex flex-wrap items-center gap-md">
         {baseline && <VerdictPill verdict={baseline.verdict} />}
@@ -131,8 +149,26 @@ export function DealDetail({ initial }: { initial: DealWithModel }) {
                     Mergence&apos;s default assumptions
                   </p>
                 </div>
-                <VerdictPill verdict={baseline.verdict} />
+                <ScoreBadge model={baseline} />
               </div>
+
+              {/* Plain-English explainer + EPS visual */}
+              <div className="mt-md grid grid-cols-1 gap-md lg:grid-cols-[1fr_auto]">
+                <Card>
+                  <h3 className="text-body-sm font-semibold text-ink">In plain English</h3>
+                  <p className="mt-xs text-body-sm text-ink-muted">
+                    {explainDeal(facts, baseline, cur)}
+                  </p>
+                </Card>
+                <EpsBars model={baseline} cur={cur} />
+              </div>
+
+              {sensitivity && (
+                <div className="mt-md rounded-md border border-[#2c3170] bg-surface-1 px-md py-sm text-body-sm text-ink-muted">
+                  <span className="font-medium text-ink">What-if:</span> {sensitivity}
+                </div>
+              )}
+
               <div className="mt-md">
                 <MetricsGrid model={baseline} acquirerPrice={acquirer?.price} cur={cur} />
               </div>
@@ -158,7 +194,7 @@ export function DealDetail({ initial }: { initial: DealWithModel }) {
                   </p>
                 </div>
                 <div className="flex items-center gap-sm">
-                  <VerdictPill verdict={scenario.verdict} />
+                  <ScoreBadge model={scenario} />
                   <button
                     onClick={resetScenario}
                     className="focus-ring rounded-md px-xs py-[2px] text-caption text-ink-subtle transition-colors hover:text-ink"
@@ -468,6 +504,69 @@ function MetricsGrid({
             : "neutral"
         }
       />
+    </div>
+  );
+}
+
+function ScoreBadge({ model }: { model: Model }) {
+  const score = computeDealScore(model);
+  const meta = scoreMeta(score);
+  const color =
+    meta.tone === "bull" ? "text-bull" : meta.tone === "bear" ? "text-bear" : "text-ink";
+  return (
+    <div className="flex items-center gap-sm">
+      <div className="text-right">
+        <div className="flex items-baseline justify-end gap-1">
+          <span className={`font-mono text-[28px] font-semibold leading-none tabular-nums ${color}`}>
+            {score}
+          </span>
+          <span className="text-caption text-ink-tertiary">/100</span>
+        </div>
+        <p className="mt-[2px] text-caption text-ink-subtle">Deal score · {meta.label}</p>
+      </div>
+      <VerdictPill verdict={model.verdict} />
+    </div>
+  );
+}
+
+function EpsBars({ model, cur }: { model: Model; cur: string }) {
+  const a = model.acquirerStandaloneEPS;
+  const b = model.proFormaEPS;
+  const max = Math.max(Math.abs(a), Math.abs(b), 0.01);
+  const h = (v: number) => Math.max(3, Math.round((Math.abs(v) / max) * 68));
+  const up = b >= a;
+  return (
+    <div className="rounded-md border border-hairline-tertiary bg-surface-2 p-md">
+      <p className="text-caption text-ink-subtle">EPS before vs after</p>
+      <div className="mt-sm flex items-end gap-lg">
+        <EpsBar label="Standalone" value={a} height={h(a)} tone="neutral" cur={cur} />
+        <EpsBar label="Pro-forma" value={b} height={h(b)} tone={up ? "bull" : "bear"} cur={cur} />
+      </div>
+    </div>
+  );
+}
+
+function EpsBar({
+  label,
+  value,
+  height,
+  tone,
+  cur,
+}: {
+  label: string;
+  value: number;
+  height: number;
+  tone: "bull" | "bear" | "neutral";
+  cur: string;
+}) {
+  const bg = tone === "bull" ? "bg-bull" : tone === "bear" ? "bg-bear" : "bg-ink-tertiary";
+  return (
+    <div className="flex flex-col items-center gap-xs">
+      <span className="font-mono text-caption text-ink-muted tabular-nums">
+        {fmtPrice(value, cur)}
+      </span>
+      <div className={`w-10 rounded-t-sm ${bg}`} style={{ height }} />
+      <span className="text-caption text-ink-tertiary">{label}</span>
     </div>
   );
 }

@@ -11,6 +11,8 @@ const links = [
   { href: "/deals/announced", label: "Announced" },
   { href: "/deals/completed", label: "Completed" },
   { href: "/deals/rumored", label: "Rumored" },
+  { href: "/compare", label: "Compare" },
+  { href: "/saved", label: "Saved" },
 ];
 
 export function TopNav() {
