@@ -92,3 +92,51 @@ export function explainDeal(facts: DealFacts, m: ModelResult, cur = "USD"): stri
 
   return parts.join(" ");
 }
+
+/**
+ * A go / no-go recommendation for whether an acquirer should pursue the deal,
+ * with plain reasons. Distilled from the deal score plus the underlying signals.
+ */
+export function dealRecommendation(
+  m: ModelResult,
+  cur = "USD",
+): { decision: "go" | "caution" | "no-go"; headline: string; reasons: string[] } {
+  const score = computeDealScore(m);
+  const reasons: string[] = [];
+
+  reasons.push(
+    m.isAccretive
+      ? `Adds to earnings — EPS accretive by ~${fmtPct(Math.abs(m.accretionDilutionPct))}.`
+      : `Reduces earnings — EPS dilutive by ~${fmtPct(Math.abs(m.accretionDilutionPct))}.`,
+  );
+
+  if (m.premiumPct > 0.45)
+    reasons.push(`Rich premium (~${fmtPctRaw(m.premiumPct, 0)}) — high overpayment risk.`);
+  else if (m.premiumPct >= 0)
+    reasons.push(`Premium (~${fmtPctRaw(m.premiumPct, 0)}) is within a normal range.`);
+  else reasons.push(`Offered below market — a discount to the target's price.`);
+
+  if (m.netSynergies > 0)
+    reasons.push(
+      `Synergies (~${fmtCurrencyCompact(m.netSynergies, cur)}/yr) help justify the price.`,
+    );
+  else reasons.push(`No net synergies assumed — the price stands on its own.`);
+
+  if (m.dataCompleteness < 0.6)
+    reasons.push(`Limited financial data — treat this as indicative only.`);
+
+  let decision: "go" | "caution" | "no-go";
+  let headline: string;
+  if (score >= 60 && m.isAccretive) {
+    decision = "go";
+    headline = "Good to go";
+  } else if (score < 42 || (!m.isAccretive && m.premiumPct > 0.4)) {
+    decision = "no-go";
+    headline = "Reconsider this deal";
+  } else {
+    decision = "caution";
+    headline = "Proceed with caution";
+  }
+
+  return { decision, headline, reasons };
+}

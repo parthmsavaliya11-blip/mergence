@@ -116,6 +116,47 @@ export async function modelDeal(
   return { facts, acquirer, target, assumptions, model, edgarUrl };
 }
 
+/**
+ * Evaluate a *hypothetical* deal between any two tickers (the "Deal Evaluator").
+ * Resolves both companies' financials and runs the model off a synthetic
+ * DealFacts — with no disclosed premium, so the premium assumption values the
+ * offer against the target's current price.
+ */
+export async function evaluateCustomDeal(
+  acquirerSymbol: string,
+  targetSymbol: string,
+  overrides?: Partial<ModelAssumptions>,
+): Promise<DealWithModel> {
+  const [acquirer, target] = await Promise.all([
+    resolveFinancials(acquirerSymbol, acquirerSymbol),
+    resolveFinancials(targetSymbol, targetSymbol),
+  ]);
+
+  const facts: DealFacts = {
+    id: `eval-${acquirerSymbol}-${targetSymbol}`,
+    status: "announced",
+    acquirer: acquirer?.name ?? acquirerSymbol,
+    acquirerSymbol,
+    target: target?.name ?? targetSymbol,
+    targetSymbol,
+    structure: "stock",
+    sector: target?.sector,
+    currency: target?.currency ?? acquirer?.currency,
+  };
+
+  const base = assumptionsFromFacts(facts);
+  const assumptions = clampAssumptions({ ...base, ...overrides });
+
+  // Only produce a model when we actually have priced, real companies — a
+  // placeholder with zero price/earnings would yield nonsense numbers.
+  const model =
+    acquirer && target && acquirer.price > 0 && target.price > 0
+      ? runModel({ facts, acquirer, target, assumptions })
+      : null;
+
+  return { facts, acquirer, target, assumptions, model, edgarUrl: null };
+}
+
 async function resolveFinancials(
   symbol: string | undefined,
   name: string,

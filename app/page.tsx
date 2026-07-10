@@ -21,7 +21,10 @@ export default function Home() {
             price, and a bull/bear read before close.
           </p>
           <div className="mt-xl flex flex-wrap items-center justify-center gap-sm">
-            <ButtonLink href="/screener" variant="primary">
+            <ButtonLink href="/evaluate" variant="primary">
+              Evaluate a deal
+            </ButtonLink>
+            <ButtonLink href="/screener" variant="secondary">
               Start screening
             </ButtonLink>
             <ButtonLink href="/deals/announced" variant="secondary">

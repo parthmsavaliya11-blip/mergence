@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { ButtonLink } from "@/components/ui";
 
 const links = [
+  { href: "/evaluate", label: "Evaluate" },
   { href: "/screener", label: "Screener" },
   { href: "/deals/announced", label: "Announced" },
   { href: "/deals/completed", label: "Completed" },
